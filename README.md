@@ -1,6 +1,6 @@
 
 <p align="center">
-	  <img src="https://github.com/philipschall/rqtreemesh/blob/master/images/SWBLe.gif">
+	  <img src="https://github.com/philipschall/rqtreemesh/blob/main/images/SWBLe.gif">
       <br />
 	  <i>Triangulated terrain near Horseshoe Bend, Arizona.</i>
 </p>
@@ -94,7 +94,7 @@ flip_zy: bool = True
 ***
 <center>
 	<figure>
-	  <img src="https://s11.gifyu.com/images/SgRbx.gif">
+	  <img src="https://github.com/philipschall/rqtreemesh/blob/main/images/ex.gif">
 	  <figcaption><i>Triangulation of a 2 meter per pixel resolution heightmap of East Pawnee Butte, Colorado. A maximum error of 0 meters results in a mesh consisting of 32768 triangles (left). A maximum error of 0.5 meters produces 8156 triangles (middle), and a  maximum error of 1 meter produces 4074 triangles (right). </i></figcaption>
 	</figure>
 </center>
