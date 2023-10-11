@@ -80,7 +80,7 @@ class Heightmap:
         top_left_x = tags[33922][3] - pixel_dim / 2
         top_left_y = tags[33922][4] + pixel_dim / 2
         return cls(array, pixel_dim, top_left_x, top_left_y)
-    def generate_mesh(self, max_error: float) -> Tuple[np.ndarray, np.ndarray]:
+    def generate_mesh(self, max_error: float, show_progress: bool = False) -> Tuple[np.ndarray, np.ndarray]:
         """
         Generate a 3D mesh using restricted qudtree triangulation.
 
@@ -89,6 +89,9 @@ class Heightmap:
         max_error : float
             The maximum absolute vertical distance between the input heightmap
             and the resulting mesh.
+        show_progress : bool
+            Show a progress bar while generating the mesh.
+            Default value: False.
 
         Returns:
         -------
@@ -101,7 +104,7 @@ class Heightmap:
             indices into the first element.
         """
         return generatemesh(self.array, self.max_depth, max_error, self.pixel_dim,
-                            self.top_left_x, self.top_left_y)
+                            self.top_left_x, self.top_left_y, show_progress)
 
 def write_obj(path: str, verts: np.ndarray, triangles: np.ndarray,
               flip_zy: bool = False):

@@ -67,6 +67,11 @@ max_error: float
 ```
 > The maximum absolute vertical distance between the input heightmap and the resulting mesh.
 
+```python
+show_progress: bool = False
+```
+> Show a progress bar while generating the mesh. Default value: False.
+
 **Returns**
 ```python
 (vertices, triangles): Tuple[np.ndarray, np.ndarray]

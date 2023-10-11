@@ -30,12 +30,12 @@ void RecursiveTriangulate(std::vector<bool>& marked, std::vector<std::array<long
     }
 }
 
-void RecursiveCollect(std::set<long>& vertices, const std::array<long, 3>& triangle,
+void RecursiveCollect(std::vector<long>& vertices, const std::array<long, 3>& triangle,
     const int& level, const int& maxLevel) {
     if (level == maxLevel) {
         return;
     }
-    vertices.insert((triangle[1] + triangle[2]) / 2);
+    vertices.push_back((triangle[1] + triangle[2]) / 2);
     RecursiveCollect(vertices, { (triangle[1] + triangle[2]) / 2, triangle[0],
         triangle[1] }, level + 1, maxLevel);
     RecursiveCollect(vertices, { (triangle[1] + triangle[2]) / 2, triangle[2],

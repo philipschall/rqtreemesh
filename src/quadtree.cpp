@@ -2,6 +2,8 @@
 #include <pybind11/numpy.h>
 #include "triangulation.h"
 
+constexpr float TRIANGULATION_MARKER = -9999;
+
 inline constexpr long pow2(const int& i)
 {
     return long(1) << i;
@@ -79,7 +81,7 @@ std::vector<long> Level::BoundaryVerts() const {
 
 std::vector<float> Level::Triangulation(const int& offset) const {
     long vertDim = heightmap->vertDim;
-    std::vector<float> triangulation(vertDim * vertDim, 0);
+    std::vector<float> triangulation(vertDim * vertDim, TRIANGULATION_MARKER);
     std::vector<bool> marked(vertDim * vertDim, true);
     std::vector<std::array<long, 3>> triangles = CreateMesh(marked, 2 * depth + offset, vertDim);
     for (std::array<long, 3>&triangle : triangles) {
@@ -88,10 +90,10 @@ std::vector<float> Level::Triangulation(const int& offset) const {
             heightmap->vertexHeights[triangle[1]],
             heightmap->vertexHeights[triangle[2]],
             heightmap->vertDim);
-        std::set<long> subVertices = { triangle[0], triangle[1], triangle[2] };
+        std::vector<long> subVertices = { triangle[0], triangle[1], triangle[2] };
         RecursiveCollect(subVertices, triangle, 2 * depth + offset, 2 * (heightmap->maxDepth));
         for (const long& subVertex : subVertices) {
-            if (triangulation[subVertex] == 0) {
+            if (triangulation[subVertex] == TRIANGULATION_MARKER) {
                 triangulation[subVertex] = heightmap->vertexHeights[triangle[0]] -
                     1 / norm[2] * (norm[0] * ((subVertex % heightmap->vertDim) - (triangle[0] % heightmap->vertDim)) +
                         norm[1] * ((subVertex / heightmap->vertDim) - (triangle[0] / heightmap->vertDim)));
