@@ -4,14 +4,14 @@
 
 constexpr float TRIANGULATION_MARKER = -9999;
 
-inline constexpr long pow2(const int& i)
+inline constexpr std::size_t pow2(const int& i)
 {
-    return long(1) << i;
+    return std::size_t(1) << i;
 }
 
 struct Heightmap {
     int maxDepth;
-    long vertDim;
+    std::size_t vertDim;
     pybind11::array_t<float> array;
     std::vector<float> vertexHeights;
     Heightmap(const pybind11::array_t<float>& array, const int& maxDepth);
@@ -41,12 +41,12 @@ Heightmap::Heightmap(const pybind11::array_t<float>& array, const int& maxDepth)
 }
 
 struct Level {
-    long width;
+    std::size_t width;
     int depth;
     const Heightmap* heightmap;;
     Level(const int& depth, const Heightmap* heightmap);
-    std::vector<long> CenterVerts() const;
-    std::vector<long> BoundaryVerts() const;
+    std::vector<std::size_t> CenterVerts() const;
+    std::vector<std::size_t> BoundaryVerts() const;
     std::vector<float> Triangulation(const int& offset) const;
 };
 
@@ -56,23 +56,23 @@ Level::Level(const int& depth, const Heightmap* heightmap) {
     width = (heightmap->vertDim - 1) / pow2(depth);
 }
 
-std::vector<long> Level::CenterVerts() const {
-    std::vector<long> vertices;
+std::vector<std::size_t> Level::CenterVerts() const {
+    std::vector<std::size_t> vertices;
     vertices.reserve(pow2(2 * (depth - 1)));
-    for (long row = width; row < heightmap->vertDim; row += (2 * width)) {
-        for (long col = width; col < heightmap->vertDim; col += (2 * width)) {
+    for (std::size_t row = width; row < heightmap->vertDim; row += (2 * width)) {
+        for (std::size_t col = width; col < heightmap->vertDim; col += (2 * width)) {
             vertices.push_back(row * heightmap->vertDim + col);
         }
     }
     return vertices;
 }
 
-std::vector<long> Level::BoundaryVerts() const {
-    std::vector<long> vertices;
+std::vector<std::size_t> Level::BoundaryVerts() const {
+    std::vector<std::size_t> vertices;
     vertices.reserve(2 * pow2(2 * (depth - 1)) + pow2(depth));
-    for (long row = 0; row < heightmap->vertDim; row += width) {
-        long offset = width - (row % (2 * width));
-        for (long col = offset; col < heightmap->vertDim; col += (2 * width)) {
+    for (std::size_t row = 0; row < heightmap->vertDim; row += width) {
+        std::size_t offset = width - (row % (2 * width));
+        for (std::size_t col = offset; col < heightmap->vertDim; col += (2 * width)) {
             vertices.push_back(row * heightmap->vertDim + col);
         }
     }
@@ -80,46 +80,65 @@ std::vector<long> Level::BoundaryVerts() const {
 }
 
 std::vector<float> Level::Triangulation(const int& offset) const {
-    long vertDim = heightmap->vertDim;
-    std::vector<float> triangulation(vertDim * vertDim, TRIANGULATION_MARKER);
-    std::vector<bool> marked(vertDim * vertDim, true);
-    std::vector<std::array<long, 3>> triangles = CreateMesh(marked, 2 * depth + offset, vertDim);
-    for (std::array<long, 3>&triangle : triangles) {
-        std::array<float, 3> norm = TriangleNorm(triangle,
-            heightmap->vertexHeights[triangle[0]],
-            heightmap->vertexHeights[triangle[1]],
-            heightmap->vertexHeights[triangle[2]],
-            heightmap->vertDim);
-        std::vector<long> subVertices = { triangle[0], triangle[1], triangle[2] };
-        RecursiveCollect(subVertices, triangle, 2 * depth + offset, 2 * (heightmap->maxDepth));
-        for (const long& subVertex : subVertices) {
-            if (triangulation[subVertex] == TRIANGULATION_MARKER) {
-                triangulation[subVertex] = heightmap->vertexHeights[triangle[0]] -
-                    1 / norm[2] * (norm[0] * ((subVertex % heightmap->vertDim) - (triangle[0] % heightmap->vertDim)) +
-                        norm[1] * ((subVertex / heightmap->vertDim) - (triangle[0] / heightmap->vertDim)));
-
+    std::size_t vertDim = heightmap->vertDim;
+    if (depth == heightmap->maxDepth) {
+        if (offset == -1) {
+            return heightmap->vertexHeights;
+        }
+        else {
+            std::vector<float> triangulation(heightmap->vertexHeights);
+            for (std::size_t& index : BoundaryVerts()) {
+                if ((index / vertDim) % 2 == 0) {
+                    triangulation[index] = 0.5f * (triangulation[index - 1] + triangulation[index + 1]);
+                }
+                else {
+                    triangulation[index] = 0.5f * (triangulation[index - vertDim] + triangulation[index + vertDim]);
+                }
             }
+            return triangulation;
         }
     }
-    return triangulation;
+    else {
+        std::vector<float> triangulation(vertDim * vertDim, TRIANGULATION_MARKER);
+        std::vector<bool> marked(vertDim * vertDim, true);
+        std::vector<std::array<std::size_t, 3>> triangles = CreateMesh(marked, 2 * depth + offset, vertDim);
+        for (std::array<std::size_t, 3>&triangle : triangles) {
+            std::array<float, 3> norm = TriangleNorm(triangle,
+                heightmap->vertexHeights[triangle[0]],
+                heightmap->vertexHeights[triangle[1]],
+                heightmap->vertexHeights[triangle[2]],
+                heightmap->vertDim);
+            std::vector<std::size_t> subVertices = { triangle[0], triangle[1], triangle[2] };
+            RecursiveCollect(subVertices, triangle, 2 * depth + offset, 2 * (heightmap->maxDepth));
+            for (const std::size_t& subVertex : subVertices) {
+                if (triangulation[subVertex] == TRIANGULATION_MARKER) {
+                    triangulation[subVertex] = heightmap->vertexHeights[triangle[0]] -
+                        1 / norm[2] * (norm[0] * ((long long)(subVertex % heightmap->vertDim) - (long long)(triangle[0] % heightmap->vertDim)) +
+                            norm[1] * ((long long)(subVertex / heightmap->vertDim) - (long long)(triangle[0] / heightmap->vertDim)));
+
+                }
+            }
+        }
+        return triangulation;
+    }
 }
 
 struct Vertex {
-    long index;
-    long row;
-    long col;
+    std::size_t index;
+    std::size_t row;
+    std::size_t col;
     const Level* level;
     bool isCenter;
-    Vertex(long index, bool isCenter, const Level* level);
+    Vertex(std::size_t index, bool isCenter, const Level* level);
     bool IsHorizontal() const;
-    long ParentQuad(const long& coord) const;
-    long ToIndex(const long& row, const long& col) const;
-    long FixCoord(const long& coord) const;
-    std::array<long, 2> Neighbours() const;
+    std::size_t ParentQuad(const std::size_t& coord) const;
+    std::size_t ToIndex(const std::size_t& row, const std::size_t& col) const;
+    std::size_t FixCoord(const std::size_t& coord) const;
+    std::array<std::size_t, 2> Neighbours() const;
     float Error(const std::vector<float>& triangulation) const;
 };
 
-Vertex::Vertex(long index, bool isCenter, const Level* level) {
+Vertex::Vertex(std::size_t index, bool isCenter, const Level* level) {
     this->index = index;
     this->isCenter = isCenter;
     row = index / level->heightmap->vertDim;
@@ -134,19 +153,19 @@ bool Vertex::IsHorizontal() const {
     return false;
 }
 
-long Vertex::ParentQuad(const long& coord) const {
+std::size_t Vertex::ParentQuad(const std::size_t& coord) const {
     return coord % (4 * level->width) / (2 * level->width);
 }
 
-long Vertex::ToIndex(const long& row, const long& col) const {
+std::size_t Vertex::ToIndex(const std::size_t& row, const std::size_t& col) const {
     return row * level->heightmap->vertDim + col;
 }
 
-long Vertex::FixCoord(const long& coord) const {
-    return std::max<long>(0, std::min<long>(level->heightmap->vertDim - 1, coord));
+std::size_t Vertex::FixCoord(const std::size_t& coord) const {
+    return std::max<std::size_t>(0, std::min<std::size_t>(level->heightmap->vertDim - 1, coord));
 }
 
-std::array<long, 2> Vertex::Neighbours() const {
+std::array<std::size_t, 2> Vertex::Neighbours() const {
     if (isCenter) {
         if (ParentQuad(row) == ParentQuad(col)) {
             return { ToIndex(FixCoord(row + level->width), FixCoord(col - level->width)),
@@ -166,30 +185,30 @@ std::array<long, 2> Vertex::Neighbours() const {
 }
 
 float Vertex::Error(const std::vector<float>& triangulation) const {
-    std::vector<long> subverts;
+    std::vector<std::size_t> subverts;
     if (isCenter) {
-        subverts.reserve((size_t)(4 * level->width * level->width + 4 * level->width - 3));
-        for (long rowOffset = row - level->width; rowOffset <= row + level->width; rowOffset++) {
-            for (long colOffset = col - level->width; colOffset <= col + level->width; colOffset++) {
-                if ((std::abs(row - rowOffset) + std::abs(col - colOffset)) < pow2(level->width)) {
+        subverts.reserve(4 * level->width * level->width + 4 * level->width - 3);
+        for (std::size_t rowOffset = row - level->width; rowOffset <= row + level->width; rowOffset++) {
+            for (std::size_t colOffset = col - level->width; colOffset <= col + level->width; colOffset++) {
+                if ((std::abs<std::size_t>(row - rowOffset) + std::abs<std::size_t>(col - colOffset)) < pow2((int)level->width)) {
                     subverts.push_back(ToIndex(FixCoord(rowOffset), FixCoord(colOffset)));
                 }
             }
         }
     }
     else {
-        subverts.reserve((size_t)(2 * level->width * level->width + 2 * level->width - 3));
-        for (long rowOffset = row - level->width; rowOffset <= row + level->width; rowOffset++) {
-            for (long colOffset = col - level->width + std::abs(row - rowOffset);
-                colOffset <= col + level->width - std::abs(row - rowOffset); colOffset++) {
-                if ((std::abs(rowOffset - row) < level->width) && (std::abs(colOffset - col) < level->width)) {
+        subverts.reserve(2 * level->width * level->width + 2 * level->width - 3);
+        for (std::size_t rowOffset = row - level->width; rowOffset <= row + level->width; rowOffset++) {
+            for (std::size_t colOffset = col - level->width + std::abs<std::size_t>(row - rowOffset);
+                colOffset <= col + level->width - std::abs<std::size_t>(row - rowOffset); colOffset++) {
+                if ((std::abs<std::size_t>(rowOffset - row) < level->width) && (std::abs<std::size_t>(colOffset - col) < level->width)) {
                     subverts.push_back(ToIndex(FixCoord(rowOffset), FixCoord(colOffset)));
                 }
             }
         }
     }
     float maxError = 0;
-    for (long& vertex : subverts) {
+    for (std::size_t& vertex : subverts) {
         float error = std::abs(level->heightmap->vertexHeights[vertex] - triangulation[vertex]);
         if (error > maxError) {
             maxError = error;
