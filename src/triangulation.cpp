@@ -30,18 +30,6 @@ void RecursiveTriangulate(std::vector<bool>& marked, std::vector<std::array<std:
     }
 }
 
-void RecursiveCollect(std::vector<std::size_t>& vertices, const std::array<std::size_t, 3>& triangle,
-    const int& level, const int& maxLevel) {
-    if (level == maxLevel) {
-        return;
-    }
-    vertices.push_back((triangle[1] + triangle[2]) / 2);
-    RecursiveCollect(vertices, { (triangle[1] + triangle[2]) / 2, triangle[0],
-        triangle[1] }, level + 1, maxLevel);
-    RecursiveCollect(vertices, { (triangle[1] + triangle[2]) / 2, triangle[2],
-        triangle[0] }, level + 1, maxLevel);
-}
-
 std::vector<std::array<std::size_t, 3>> CreateMesh(std::vector<bool>& marked, const int& maxLevel, const std::size_t& vertDim) {
     std::vector<std::array<std::size_t, 3>> triangles;
     triangles.reserve((vertDim - 1) * (vertDim - 1) / 2);
@@ -49,4 +37,8 @@ std::vector<std::array<std::size_t, 3>> CreateMesh(std::vector<bool>& marked, co
     RecursiveTriangulate(marked, triangles, { vertDim - 1, 0, vertDim * vertDim - 1 }, 0, maxLevel);
     triangles.shrink_to_fit();
     return triangles;
+}
+
+double Dot(const std::pair<double, double>& vecA, const std::pair<double, double>& vecB) {
+    return vecA.first * vecB.first + vecA.second * vecB.second;
 }

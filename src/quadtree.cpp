@@ -1,5 +1,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/numpy.h>
+#include <iostream>
+#include <algorithm>
 #include "triangulation.h"
 
 constexpr float TRIANGULATION_MARKER = -9999;
@@ -81,46 +83,37 @@ std::vector<std::size_t> Level::BoundaryVerts() const {
 
 std::vector<float> Level::Triangulation(const int& offset) const {
     std::size_t vertDim = heightmap->vertDim;
-    if (depth == heightmap->maxDepth) {
-        if (offset == -1) {
-            return heightmap->vertexHeights;
-        }
-        else {
-            std::vector<float> triangulation(heightmap->vertexHeights);
-            for (std::size_t& index : BoundaryVerts()) {
-                if ((index / vertDim) % 2 == 0) {
-                    triangulation[index] = 0.5f * (triangulation[index - 1] + triangulation[index + 1]);
-                }
-                else {
-                    triangulation[index] = 0.5f * (triangulation[index - vertDim] + triangulation[index + vertDim]);
-                }
-            }
-            return triangulation;
-        }
-    }
-    else {
-        std::vector<float> triangulation(vertDim * vertDim, TRIANGULATION_MARKER);
-        std::vector<bool> marked(vertDim * vertDim, true);
-        std::vector<std::array<std::size_t, 3>> triangles = CreateMesh(marked, 2 * depth + offset, vertDim);
-        for (std::array<std::size_t, 3>&triangle : triangles) {
-            std::array<float, 3> norm = TriangleNorm(triangle,
-                heightmap->vertexHeights[triangle[0]],
-                heightmap->vertexHeights[triangle[1]],
-                heightmap->vertexHeights[triangle[2]],
-                heightmap->vertDim);
-            std::vector<std::size_t> subVertices = { triangle[0], triangle[1], triangle[2] };
-            RecursiveCollect(subVertices, triangle, 2 * depth + offset, 2 * (heightmap->maxDepth));
-            for (const std::size_t& subVertex : subVertices) {
-                if (triangulation[subVertex] == TRIANGULATION_MARKER) {
-                    triangulation[subVertex] = heightmap->vertexHeights[triangle[0]] -
-                        1 / norm[2] * (norm[0] * ((long long)(subVertex % heightmap->vertDim) - (long long)(triangle[0] % heightmap->vertDim)) +
-                            norm[1] * ((long long)(subVertex / heightmap->vertDim) - (long long)(triangle[0] / heightmap->vertDim)));
-
+    std::vector<float> triangulation(vertDim * vertDim, TRIANGULATION_MARKER);
+    std::vector<bool> marked(vertDim * vertDim, true);
+    std::vector<std::array<std::size_t, 3>> triangles = CreateMesh(marked, 2 * depth + offset, vertDim);
+    for (std::array<std::size_t, 3>&triangle : triangles) {
+        std::array<double, 3> xVerts = { (double)(triangle[0] % vertDim), (double)(triangle[1] % vertDim), (double)(triangle[2] % vertDim) };
+        std::array<double, 3> yVerts = { (double)(triangle[0] / vertDim), (double)(triangle[1] / vertDim), (double)(triangle[2] / vertDim) };
+        std::array<double, 3> zVerts = { (double)(heightmap->vertexHeights[triangle[0]]), (double)(heightmap->vertexHeights[triangle[1]]), (double)(heightmap->vertexHeights[triangle[2]]) };
+        std::size_t minX = (size_t)*std::min_element(std::begin(xVerts), std::end(xVerts));
+        std::size_t maxX = (size_t)*std::max_element(std::begin(xVerts), std::end(xVerts));
+        std::size_t minY = (size_t)*std::min_element(std::begin(yVerts), std::end(yVerts));
+        std::size_t maxY = (size_t)*std::max_element(std::begin(yVerts), std::end(yVerts));
+        std::pair<double, double> vectorAB = { xVerts[1] - xVerts[0], yVerts[1] - yVerts[0] };
+        std::pair<double, double> vectorAC = { xVerts[2] - xVerts[0], yVerts[2] - yVerts[0] };
+        std::pair<double, double> vectorNAC = { yVerts[0] - yVerts[2], xVerts[2] - xVerts[0] };
+        std::pair<double, double> vectorNAB = { yVerts[0] - yVerts[1], xVerts[1] - xVerts[0] };
+        for (std::size_t row = minY; row <= maxY; row++) {
+            for (std::size_t col = minX; col <= maxX; col++) {
+                size_t index = row * vertDim + col;
+                if (triangulation[index] == TRIANGULATION_MARKER) {
+                    std::pair<double, double> vectorAP = { (double)col - xVerts[0], (double)row - yVerts[0]};
+                    double beta = Dot(vectorAP, vectorNAC) / Dot(vectorAB, vectorNAC);
+                    double gamma = Dot(vectorAP, vectorNAB) / Dot(vectorAC, vectorNAB);
+                    double alpha = 1 - beta - gamma;
+                    if (alpha >= 0 && beta >= 0 && gamma >= 0) {
+                        triangulation[index] = alpha * zVerts[0] + beta * zVerts[1] + gamma * zVerts[2];
+                    }
                 }
             }
         }
-        return triangulation;
     }
+    return triangulation;
 }
 
 struct Vertex {

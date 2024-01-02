@@ -7,8 +7,8 @@ std::array<float, 3> TriangleNorm(const std::array<std::size_t, 3>& triangle, co
 
 void RecursiveTriangulate(std::vector<bool>& marked, std::vector<std::array<std::size_t, 3>>& triangles, const std::array<std::size_t, 3>& triangle, const int& level, const int& maxLevel);
 
-void RecursiveCollect(std::vector<std::size_t>& vertices, const std::array<std::size_t, 3>& triangle, const int& level, const int& maxLevel);
-
 std::vector<std::array<std::size_t, 3>> CreateMesh(std::vector<bool>& marked, const int& maxLevel, const std::size_t& vertDim);
+
+double Dot(const std::pair<double, double>& vecA, const std::pair<double, double>& vecB);
 
 #endif /* TRIANGULATION_H */
