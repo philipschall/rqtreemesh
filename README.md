@@ -32,7 +32,7 @@ heightmap = Heightmap(array: np.ndarray, pixel_dim: float, top_left_x: float, to
  ```python
  array: np.ndarray
  ```
- > Input raster heightmap as a numpy array with shape (n, n), where n is a positive power of two.
+ > Input raster heightmap as a 2-dimensional numpy array where each dimension is a power of two. E.g. 1024 x 2048. Maximum size is 32768 x 32768.
  
 ```python
  pixel_dim: float
@@ -54,7 +54,7 @@ heightmap = Heightmap.from_geotiff(path: str)
  ```python
  path: str
  ```
- > Path to input raster heightmap in geoTIFF format of which the number of rows (and equally the number of columns) is a power of two. The geolocation and spatial resolution of the heightmap will be obtained from the appropriate tags in the geoTIFF.
+ > Path to input raster heightmap in geoTIFF format with dimesnsions a power of two. E.g. 1024 x 2048. Maximum size is 32768 x 32768. The geolocation and spatial resolution of the heightmap will be obtained from the appropriate tags in the geoTIFF.
 ***
 To generate a mesh, use the `generate_mesh` method.
 ```python

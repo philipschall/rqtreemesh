@@ -14,7 +14,7 @@ ext_modules = [
         include_dirs = ['./src'],
         sources = sorted(glob('src/*.c*')),
         define_macros = [('_rqtreemesh', '_rqtreemesh')],
-		extra_compile_args = ['-O3', '-Wall'],
+		extra_compile_args = ['-O2', '-Wall'],
         ),
 ]
 

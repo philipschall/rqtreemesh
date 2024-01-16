@@ -7,6 +7,9 @@ from PIL import Image
 
 Image.MAX_IMAGE_PIXELS = None
 
+def _is_square(number: int) -> bool:
+    return (number & (number - 1) == 0) and number != 0
+
 class Heightmap:
     """
     Provides heightmap raster to mesh conversion functionality.
@@ -19,8 +22,9 @@ class Heightmap:
         Parameters:
         ----------
         array : np.ndarray
-            Input raster heightmap as a numpy array with shape (n, n), where
-            n is a positive power of two.
+            Input raster heightmap as a 2-dimensional numpy array where
+            each dimension is a power of two. E.g. 1024 x 2048. Maximum
+            size is 32768 x 32768.
         pixel_dim : float
             Spatial dimension of one pixel in the input heightmap.
         top_left_x : float
@@ -34,34 +38,35 @@ class Heightmap:
 
         Raises:
         ------
-        ValueError : If input array is not a 2D array with equal dimensions
+        ValueError : If input array is not a 2D array with dimensions
                      a power of two.
         """
         if array.ndim != 2:
             raise ValueError("Input heighmap must be a 2D array.")
-        if ((array.shape[0] != array.shape[1]) or
-             not ((array.shape[0] & (array.shape[0] - 1) == 0) and
-                   array.shape[0] != 0)):
-            raise ValueError("""Both dimensions of input heightmap must be the
-            same power of two.""")
+        self.vert_dim_x = array.shape[1] + 1
+        self.vert_dim_y = array.shape[0] + 1
+        if (not _is_square(self.vert_dim_x - 1) or 
+            not _is_square(self.vert_dim_y - 1)):
+            raise ValueError("""Input heightmap must have dimensions that
+            are a power of two. E.g. 1024 x 2048.""")
         self.array = np.float32(array)
-        self.max_depth = int(math.log2(array.shape[0]))
+        self.max_depth = int(math.log2(min(array.shape)))
         self.pixel_dim = pixel_dim
         self.top_left_x = top_left_x
         self.top_left_y = top_left_y
     @ classmethod
     def from_geotiff(cls, path: str):
         """
-        Create a Heightmap object by reading geo-location properties from a
-        geoTIFF image.
+        Create a Heightmap object by reading raster and  geo-location properties
+        from a geoTIFF image.
 
         Parameters:
         ----------
         path : str
-            Path to input raster heightmap in geoTIFF format of which the
-            number of rows (and equally the number of columns) is a power
-            of two. The geolocation and spatial resolution of the heightmap
-            will be obtained from the appropriate tags in the geoTIFF.
+            Path to input raster heightmap in geoTIFF format with dimesnsions
+            a power of two. E.g. 1024 x 2048. Maximum size is 32768 x 32768.
+            The geolocation and spatial resolution of the heightmap will be
+            obtained from the appropriate tags in the geoTIFF.
 
         Raises:
         ------
@@ -103,7 +108,8 @@ class Heightmap:
             where each row contains a triangle as three (zero-indexed)
             indices into the first element.
         """
-        return generatemesh(self.array, self.max_depth, max_error, self.pixel_dim,
+        return generatemesh(self.array, self.max_depth, self.vert_dim_x, self.vert_dim_y,
+                            min(self.vert_dim_x, self.vert_dim_y), max_error, self.pixel_dim,
                             self.top_left_x, self.top_left_y, show_progress)
 
 def write_obj(path: str, verts: np.ndarray, triangles: np.ndarray,

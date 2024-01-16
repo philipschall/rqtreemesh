@@ -2,10 +2,9 @@
 #include <pybind11/numpy.h>
 #include <iostream>
 #include "quadtree.h"
-#include "triangulation.h"
 
 constexpr auto PBSTR = "############################################################";
-constexpr auto PBWIDTH = 60;
+constexpr int PBWIDTH = 60;
 
 void PrintProgress(int val) {
     int lpad = (int)((double)val / 100 * PBWIDTH);
@@ -14,12 +13,12 @@ void PrintProgress(int val) {
     fflush(stdout);
 }
 
-void MarkVertices(const Level& level, const std::vector<std::size_t>& vertices, std::vector<bool>& markedVertices,
+void MarkVertices(const Level& level, const std::vector<std::int32_t>& vertices, std::vector<bool>& markedVertices,
     std::vector<bool>& marked, const bool& isCenter, const int& triangulationOffset, const float& maxError,
     std::size_t& count, std::size_t& countdown, const std::size_t& countdownInterval, const bool& progress, const std::size_t& total) {
     std::vector<float> triangulation;
     bool isTriangulated = false;
-    for (const std::size_t& index : vertices) {
+    for (const std::int32_t& index : vertices) {
         if (progress) {
             if (countdown == 0) {
                 PrintProgress((int)(100.0 * count / total));
@@ -39,7 +38,7 @@ void MarkVertices(const Level& level, const std::vector<std::size_t>& vertices, 
             }
         }
         markedVertices[index] = true;
-        for (std::size_t& neighbourIndex : vertex.Neighbours()) {
+        for (std::int32_t& neighbourIndex : vertex.Neighbours()) {
             marked[neighbourIndex] = true;
         }
         marked[index] = false;
@@ -47,28 +46,27 @@ void MarkVertices(const Level& level, const std::vector<std::size_t>& vertices, 
 }
 
 std::pair<pybind11::array, pybind11::array> RestrictedQuadTreeTriangulation(pybind11::array_t<float> array,
-    int maxDepth, float maxError, double pixelDim, double topLeftX, double topLeftY, bool progress) {
-    Heightmap heightmap = Heightmap(array, maxDepth);
-    std::size_t vertDim = heightmap.vertDim;
-    std::vector<bool> markedVertices(vertDim * vertDim, false);
-    std::vector<bool> marked(vertDim * vertDim, false);
-    std::size_t total = vertDim * vertDim - 2;
+    int maxDepth, std::int32_t vertDimX, std::int32_t vertDimY, std::int32_t minVertDim, float maxError, double pixelDim, double topLeftX, double topLeftY, bool progress) {
+    Heightmap heightmap = Heightmap(array, maxDepth, vertDimX, vertDimY, minVertDim);
+    std::vector<bool> markedVertices(vertDimX * vertDimY, false);
+    std::vector<bool> marked(vertDimX * vertDimY, false);
+    std::size_t total = vertDimX * vertDimY - 2;
     std::size_t count = 0;
     std::size_t countdown = 0;
     std::size_t countdownInterval = total / 100;
-    for (int depth = heightmap.maxDepth; depth > 0; depth--) {
+    for (std::int32_t depth = maxDepth; depth > 0; depth--) {
         Level level = Level(depth, &heightmap);
         MarkVertices(level, level.BoundaryVerts(), markedVertices, marked, false, -1, maxError, count, countdown, countdownInterval, progress, total);
         MarkVertices(level, level.CenterVerts(), markedVertices, marked, true, -2, maxError, count, countdown, countdownInterval, progress, total);
     }
     if (progress) {
         PrintProgress(100);
+        std::cout << "\n";
     }
-    markedVertices[0] = true;
-    markedVertices[vertDim - 1] = true;
-    markedVertices[vertDim * (vertDim - 1)] = true;
-    markedVertices.back() = true;
-    std::vector<std::array<std::size_t, 3>> triangles = CreateMesh(markedVertices, 2 * maxDepth, vertDim);
+    for (const std::int32_t& index : heightmap.initVerts) {
+        markedVertices[index] = true;
+    }
+    std::vector<std::array<std::int32_t, 3>> triangles = Heightmap::CreateMesh(markedVertices, 2 * maxDepth, heightmap.initTris, heightmap.maxTris);
     std::vector<std::array<double, 3>> vertexLocations;
     vertexLocations.reserve(markedVertices.size());
     std::vector<std::array<std::size_t, 3>> newTriangles(triangles.size());
@@ -76,8 +74,8 @@ std::pair<pybind11::array, pybind11::array> RestrictedQuadTreeTriangulation(pybi
     std::size_t counter = 0;
     for (std::size_t i = 0; i < markedVertices.size(); i++) {
         if (markedVertices[i]) {
-            std::size_t row = i / vertDim;
-            std::size_t col = i % vertDim;
+            std::size_t row = i / vertDimX;
+            std::size_t col = i % vertDimX;
             double x = topLeftX + col * pixelDim;
             double y = topLeftY - row * pixelDim;
             double z = (double)heightmap.vertexHeights[i];
@@ -91,4 +89,8 @@ std::pair<pybind11::array, pybind11::array> RestrictedQuadTreeTriangulation(pybi
         newTriangles[i] = { lookup[triangles[i][0]], lookup[triangles[i][1]], lookup[triangles[i][2]] };
     }
     return { pybind11::cast(vertexLocations), pybind11::cast(newTriangles) };
+}
+
+PYBIND11_MODULE(_rqtreemesh, m) {
+    m.def("generatemesh", &RestrictedQuadTreeTriangulation);
 }
