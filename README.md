@@ -59,7 +59,7 @@ heightmap = Heightmap.from_geotiff(path: str)
 To generate a mesh, use the `generate_mesh` method.
 ```python
 heightmap = Heightmap...
-(vertices, triangles) = heightmap.generate_mesh(max_error: float) -> Tuple[np.ndarray, np.ndarray]
+(vertices, triangles) = heightmap.generate_mesh(max_error: float, show_progress: bool = False) -> Tuple[np.ndarray, np.ndarray]
 ```
 **Parameters**
 ```python
