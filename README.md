@@ -7,7 +7,7 @@
 
 # rqtreemesh
 **rqtreemesh** is a basic implementation of restricted quadtree triangulation (RQT), for converting raster heightmaps to 3D meshes. For an overview of RQT-based mesh generation, see
->Pajarola, Renato. “Overview of Quadtree-based Terrain Triangulation and Visualization.” (2002).
+>Pajarola, Renato. "Overview of Quadtree-based Terrain Triangulation and Visualization." (2002).
 
 Implemented in C++ with a pybind11 wrapper for Python.
 
@@ -91,7 +91,7 @@ path: str
 ```python
 verts: np.ndarray, triangles: np.ndarray
 ```
-> A coordinate array and connectivity matrix, similar to the output of `generate_mesh`.
+> A coordinate array and connectivity matrix, such as the output of `generate_mesh`.
 ```python
 flip_zy: bool = True
 ```
