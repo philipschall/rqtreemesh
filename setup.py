@@ -20,7 +20,7 @@ ext_modules = [
 
 setup(
     name='rqtreemesh',
-    version='0.0.1',
+    version='1.0.0',
     install_requires=['numpy', 'pillow'],
     python_requires='>=3.9',
     author='Philip Schall',

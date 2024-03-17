@@ -1,3 +1,4 @@
+[![PyPI version shields.io](https://img.shields.io/pypi/v/rqtreemesh.svg)](https://pypi.python.org/pypi/rqtreemesh/)
 
 <p align="center">
 	  <img src="https://github.com/philipschall/rqtreemesh/blob/main/images/SWBLe.gif?raw=true">
