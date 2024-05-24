@@ -69,9 +69,9 @@ std::pair<pybind11::array, pybind11::array> RestrictedQuadTreeTriangulation(pybi
     std::vector<std::array<std::int64_t, 3>> triangles = Heightmap::CreateMesh(markedVertices, 2 * maxDepth, heightmap.initTris, heightmap.maxTris);
     std::vector<std::array<double, 3>> vertexLocations;
     vertexLocations.reserve(markedVertices.size());
-    std::vector<std::array<std::size_t, 3>> newTriangles(triangles.size());
-    std::vector<std::size_t> lookup(markedVertices.size(), 0);
-    std::size_t counter = 0;
+    std::vector<std::array<std::int64_t, 3>> newTriangles(triangles.size());
+    std::vector<std::int64_t> lookup(markedVertices.size(), 0);
+    std::int64_t counter = 0;
     for (std::size_t i = 0; i < markedVertices.size(); i++) {
         if (markedVertices[i]) {
             std::size_t row = i / vertDimX;
