@@ -1,6 +1,9 @@
 name: Build wheels and publish to PyPI/TestPyPI
 
-on: push
+on:
+  push:
+    tags:
+      - '*'
 
 jobs:
   build_wheels:
