@@ -16,6 +16,10 @@ Implemented in C++ with a pybind11 wrapper for Python.
 
 `git clone --recursive` this repo and run `pip install .` on it.
 
+Alternatively:
+
+`pip install rqtreemesh`.
+
 This package requires `Numpy` and `Pillow`.
 
 ### Usage
@@ -57,6 +61,8 @@ heightmap = Heightmap.from_geotiff(path: str)
  ```
  > Path to input raster heightmap in geoTIFF format with dimesnsions a power of two. E.g. 1024 x 2048. Maximum size is 32768 x 32768. The geolocation and spatial resolution of the heightmap will be obtained from the appropriate tags in the geoTIFF.
 ***
+Note that **rqtreemesh** was developed for converting Digital Elevation Models (DEMs) . For other heightmaps, such as where all values are between $0$ and $1$, scaling the `Heightmap.array` or `Heightmap.pixel_dim` may be necessary to obtain the desired result. Also take care when converting a DEM with planar units not equal to its elevation units (e.g. Geographic/WGS84 projection).
+***
 To generate a mesh, use the `generate_mesh` method.
 ```python
 heightmap = Heightmap...
@@ -79,10 +85,11 @@ show_progress: bool = False
 ```
 >A tuple containing the output mesh. `vertices` is an array where each row contains the x, y and z coordinates of a vertex. `triangles` is a connectivity matrix, i.e. an array where each row contains a triangle as three (zero-indexed) indices into the first element.
 ***
-To provide easy compatibility with most 3D software, a simple exporter to the Wavefront Object (.obj) format is also provided:
+To provide easy compatibility with most 3D software, basic exporters to the Wavefront Object (.obj) and Stereolithography (.stl) formats are provided:
 ```python
-from rqtreemesh import write_obj
+from rqtreemesh import write_obj, write_stl
 write_obj(path: str, verts: np.ndarray, triangles: np.ndarray, flip_zy: bool = False)
+write_stl(path: str, verts: np.ndarray, triangles: np.ndarray)
 ```
 **Parameters**
 ```python
@@ -96,7 +103,7 @@ verts: np.ndarray, triangles: np.ndarray
 ```python
 flip_zy: bool = True
 ```
->Interchange the z and y axes of the exported mesh. Default value: False.
+>Interchange the z and y axes of the exported mesh (only for .obj export). Default value: False.
 ***
 <center>
 	<figure>

@@ -141,3 +141,29 @@ def write_obj(path: str, verts: np.ndarray, triangles: np.ndarray,
             f.write(" ".join(["f", str(int(triangle[0] + 1)),
                               str(int(triangle[1] + 1)),
                               str(int(triangle[2] + 1)), "\n"]))
+
+def write_stl(path: str, verts: np.ndarray, triangles: np.ndarray):
+    """
+    Export a generated mesh to a .stl file.
+
+    Parameters:
+    ----------
+    path: str
+        Output file path.
+    verts : np.ndarray
+        A numpy array where each row contains the x, y and z coordinates of a
+        vertex.
+    triangles : np.ndarray
+        A connectivity matrix as a numpy array, i.e each row contains a
+        triangle as three (zero-indexed) indices into verts.
+    """
+    verts = np.float32(verts)
+    if not issubclass(triangles.dtype.type, np.integer):
+        triangles = np.uint64(triangles)
+    with open(path, "wb") as f:
+        f.write(bytearray(80))
+        f.write(np.uint32(len(triangles)).tobytes())
+        for triangle in triangles:
+            f.write(bytearray(12))
+            f.write(verts[triangle].tobytes())
+            f.write(bytearray(2))
